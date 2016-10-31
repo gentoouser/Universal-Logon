@@ -1,5 +1,5 @@
 REM Version Info
-	'  Universal Logon Script 1.9.3
+	'  Universal Logon Script 1.9.4.3
 	'  Updated 20160922
 	'
 	'
@@ -141,7 +141,6 @@ REM Setup the Shell Folders
 	Set objSM = objFolder.Self	
 	Set objFolder = objShell.Namespace(USERPROFILE)
 	Set ObjUserProfile = objFolder.Self		
-	
 REM Set Global Variables
 
 	strCompanyName = "Company Name"
@@ -184,6 +183,7 @@ REM
 	DicInstalledPrintersLocalExclude.Add "FACSYS FAX PRINTER","FXC"
 	DicInstalledPrintersLocalExclude.Add "MICROSOFT XPS DOCUMENT WRITER", "XPSPORT"
 	DicInstalledPrintersLocalExclude.Add "WEBEX DOCUMENT LOADER","WEBEX DOCUMENT LOADER PORT"
+	DicInstalledPrintersLocalExclude.Add "10.68.22.16","wwt-ms01"
 	DicInstalledPrintersLocalExclude.Add "SEND TO ONENOTE 2010","NUL"
 	DicInstalledPrintersLocalExclude.Add "SEND TO ONENOTE 2013","NUL"
 	DicInstalledPrintersLocalExclude.Add "SEND TO ONENOTE 16","NUL"
@@ -343,10 +343,10 @@ REM Task-bar Setup
 			If CInt(arrOSVersion(0) & arrOSVersion(1)) >= 6.1 Then
 				REM Fix Libraries
 				If intProcessorWidth = "64" Then
-					If objFileSys.FileExists(objProgramFilesx86.path & "\SysinternalsSuite\ShLib.exe") Then
+					If objFileSys.FileExists(StrShLib) Then
 						If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
 							Call UserPrompt ("Setting Up Libraries")
-							StrTemp = chr(34) & objProgramFilesx86.path & "\SysinternalsSuite\ShLib.exe" & chr(34) & " remove " _
+							StrTemp = chr(34) & StrShLib & chr(34) & " remove " _
 								& chr(34) & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms" & chr(34) & " " _ 
 								& chr(34) & "c:\Users\Public\Documents" & chr(34)
 							'Call UserPrompt ("Libraries Command: " & StrTemp)
@@ -356,7 +356,7 @@ REM Task-bar Setup
 							'Call UserPrompt ("Documents.library-ms Missing: " & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms")
 						End If
 					Else
-						'Call UserPrompt ("ShLib Missing: " & objProgramFilesx86.path & "\SysinternalsSuite\ShLib.exe")	
+						'Call UserPrompt ("ShLib Missing: " & StrShLib)	
 						If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
 							Call UserPrompt ("Setting Up Libraries")
 							StrTemp = chr(34) & "\\" & objSysInfo.DomainDNSName & "\NETLOGON\SysinternalsSuite\ShLib.exe" & chr(34) & " remove " _
@@ -704,11 +704,11 @@ REM Show Clock on Terminal Server
 	'objReg.SetBinaryValue HKEY_CURRENT_USER,"Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects2","Settings",arrKey
 	'Set arrKey = Nothing
 REM Fix Adobe X Issue
-	REM objReg.GetbinaryValue HKEY_CURRENT_USER,"Software\Adobe\Acrobat Reader\10.0\Privileged","bProtectedMode",arrKey
-	REM If isNull(arrKey) then
-		REM objReg.CreateKey HKEY_CURRENT_USER,"Software\Adobe\Acrobat Reader\10.0\Privileged"
-	REM End If
-	REM objWshShell.RegWrite "HKCU\Software\Adobe\Acrobat Reader\10.0\Privileged\bProtectedMode",0,"REG_DWORD"
+	' objReg.GetbinaryValue HKEY_CURRENT_USER,"Software\Adobe\Acrobat Reader\10.0\Privileged","bProtectedMode",arrKey
+	' If isNull(arrKey) then
+		' objReg.CreateKey HKEY_CURRENT_USER,"Software\Adobe\Acrobat Reader\10.0\Privileged"
+	' End If
+	' objWshShell.RegWrite "HKCU\Software\Adobe\Acrobat Reader\10.0\Privileged\bProtectedMode",0,"REG_DWORD"
 
 REM Inform user that logon process is done -- Finished network log-on processes
 	Call UserPrompt ("Finished network log-on processes")
@@ -735,10 +735,10 @@ REM Task-bar Setup
 				If CInt(arrOSVersion(0) & arrOSVersion(1)) >= 6.1 Then
 					REM Fix Libraries
 					If intProcessorWidth = "64" Then
-						If objFileSys.FileExists(objProgramFilesx86.path & "\SysinternalsSuite\ShLib.exe") Then
+						If objFileSys.FileExists(StrShLib) Then
 							If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
 								Call UserPrompt ("Setting Up Libraries")
-								StrTemp = chr(34) & objProgramFilesx86.path & "\SysinternalsSuite\ShLib.exe" & chr(34) & " remove " _
+								StrTemp = chr(34) & StrShLib & chr(34) & " remove " _
 									& chr(34) & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms" & chr(34) & " " _ 
 									& chr(34) & "c:\Users\Public\Documents" & chr(34)
 								'Call UserPrompt ("Libraries Command: " & StrTemp)
@@ -748,7 +748,7 @@ REM Task-bar Setup
 								'Call UserPrompt ("Documents.library-ms Missing: " & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms")
 							End If
 						Else
-							'Call UserPrompt ("ShLib Missing: " & objProgramFilesx86.path & "\SysinternalsSuite\ShLib.exe")	
+							'Call UserPrompt ("ShLib Missing: " & StrShLib)	
 							If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
 								Call UserPrompt ("Setting Up Libraries")
 								StrTemp = chr(34) & "\\" & objSysInfo.DomainDNSName & "\NETLOGON\SysinternalsSuite\ShLib.exe" & chr(34) & " remove " _
@@ -1081,7 +1081,7 @@ REM PinCorrector
 		Next
 
 	End Sub
-	
+		
 REM Libraries Cleanup
 	Sub LibrariesCleanup ()
  		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -1166,7 +1166,7 @@ REM IE Settings
 		
 		
  End Sub
- ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 REM Shortcut Clean Up
 	Private Sub ShortcutCleanUp (strFolder)
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -1445,7 +1445,7 @@ REM Printer Change Sub
 		' Usage:
 		'           	Call PrinterRemove ([Reg Revision Number], [Reg path], [New Printer Server])
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-		'On Error Resume Next
+		On Error Resume Next
 		
 		Dim objPrinter
 		Dim objNTPrinter
@@ -1598,7 +1598,7 @@ REM Get Main Printer Groups and Call AddPrinter Sub
 								Else
 									Call AddPrinter (strPrintServer, objGroup.sAMAccountName, True, False)
 								End If	
-							End If 
+							End If  
 						End If
 					Case Else
 				End Select
@@ -2255,7 +2255,6 @@ REM RecordLogon Sub
 				Err.clear
 			End If 				
 		End if
-	
 		Err.clear
 	End Sub
 	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -2270,6 +2269,7 @@ REM Setup IE Sub
 		' Usage:    Call SetupIE [URL or "LOGGING"],[Window Title]
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		On Error Resume Next
+	
 		Dim intCount    'Counter used during AppActivate
 
 		'Create reference to objIntExplorer
