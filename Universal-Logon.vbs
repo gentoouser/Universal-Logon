@@ -1,6 +1,6 @@
 REM Version Info
-	'  Universal Logon Script 1.9.4.3
-	'  Updated 20160922
+	'  Universal Logon Script 1.9.4.6
+	'  Updated 20170105
 	'
 	'
 REM Source Info
@@ -230,7 +230,7 @@ REM Display welcome message
 	Call UserPrompt ("You are logging on to <B>" & strRealWorkstation & "</B>." )	
 	Call UserPrompt ("Current Date is: " & Date() & " at " & Time())
 	'Add horizontal line as a 'break'
-	objIntExplorer.Document.WriteLn("<hr style=""width:100%""></hr>")
+	call UserLine()
 REM  PrinterChange
 	'Call PrinterRemove("5","Software" & False) 'If All is put in it will remove all network printers all the time. The Second command is to change print servers
 REM Slow down the script
@@ -335,7 +335,7 @@ REM  This section performs actions based on group membership
 	End If
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 'Add horizontal line as a 'break'
-objIntExplorer.Document.WriteLn("<hr style=""width:100%""></hr>")
+call UserLine()
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 REM Task-bar Setup	
 	If Not InStr(strComputerOULong,"Citrix") > 0 or InStr(strComputerOULong,"Desktop") > 0 Then
@@ -674,7 +674,7 @@ REM Shortcut Clean Up
 	End If
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 'Add horizontal line as a 'break'
-objIntExplorer.Document.WriteLn("<hr style=""width:100%""></hr>")
+call UserLine()
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 REM Setup Other Settings
 	Call UserPrompt ("Setting Up Other Settings")
@@ -687,7 +687,7 @@ REM Setup Other Settings
 		
 	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		'Add horizontal line as a 'break'
-		objIntExplorer.Document.WriteLn("<hr style=""width:100%""></hr>")
+		call UserLine()
 		' End section
 	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 	
@@ -712,7 +712,7 @@ REM Fix Adobe X Issue
 
 REM Inform user that logon process is done -- Finished network log-on processes
 	Call UserPrompt ("Finished network log-on processes")
-	objIntExplorer.Quit( )
+	Call IEQuit()
 	Call Cleanup
 
 	
@@ -1516,7 +1516,7 @@ REM Printer Change Sub
 			End If 
 			objReg.SetStringValue HKEY_CURRENT_USER,StrUserRegPath,"PrinterChange",strRevision
 			'Add horizontal line as a 'break'
-			objIntExplorer.Document.WriteLn("<hr style=""width:100%""></hr>")
+			call UserLine()
 		End If
 	End Sub
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -2342,6 +2342,36 @@ REM UserPrompt Sub
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 	    'On Error Resume Next
 	    objIntExplorer.Document.WriteLn (strPrompt & "<br />")
+	End Sub
+	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+REM UserLine Sub
+	Private Sub UserLine()
+		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+		' Sub:      	UserLine
+		' Purpose:  	Use Internet Explorer as a status message window
+		' Input:    	
+		' Output:   	Output creates horizontal line in the open Internet Explorer window
+		' Dependencies	objIntExplorer
+		' Usage:
+		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+		
+		'Need On Error Resume Next to allow script to continue if user closes IE
+	    On Error Resume Next
+	    objIntExplorer.Document.WriteLn("<hr style=""width:100%""></hr>")
+	End Sub
+	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+REM IEQuit Sub
+	Private Sub IEQuit()
+		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+		' Sub:      	IEQuit
+		' Purpose:  	Closes Internet Explorer 
+		' Dependencies	objIntExplorer
+		' Usage:
+		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+		
+		'Need On Error Resume Next to allow script to continue if user closes IE
+	    On Error Resume Next
+	    objIntExplorer.Quit( )
 	End Sub
 	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 REM Recursively creates all folders in a path
