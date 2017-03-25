@@ -1,6 +1,6 @@
 REM Version Info
-	'  Universal Logon Script 1.9.4.6
-	'  Updated 20170105
+	'  Universal Logon Script 1.9.5.0
+	'  Updated 20170325
 	'
 	'
 REM Source Info
@@ -183,7 +183,6 @@ REM
 	DicInstalledPrintersLocalExclude.Add "FACSYS FAX PRINTER","FXC"
 	DicInstalledPrintersLocalExclude.Add "MICROSOFT XPS DOCUMENT WRITER", "XPSPORT"
 	DicInstalledPrintersLocalExclude.Add "WEBEX DOCUMENT LOADER","WEBEX DOCUMENT LOADER PORT"
-	DicInstalledPrintersLocalExclude.Add "10.68.22.16","wwt-ms01"
 	DicInstalledPrintersLocalExclude.Add "SEND TO ONENOTE 2010","NUL"
 	DicInstalledPrintersLocalExclude.Add "SEND TO ONENOTE 2013","NUL"
 	DicInstalledPrintersLocalExclude.Add "SEND TO ONENOTE 16","NUL"
@@ -309,11 +308,11 @@ REM  This section performs actions based on group membership
 				objFileSys.CreateFolder(strUserHomeShare & "\Favorites")
 			End If
 		End IF	
-		If objFileSys.FolderExists("I:\") Then
-			objShell.NameSpace("I:\").Self.Name = "Home Drive"
+		If objFileSys.FolderExists("H:\") Then
+			objShell.NameSpace("H:\").Self.Name = "Home Drive"
 		Else
-			Call MapDrive ("I:", strFileServerUsers, "users$\" & strUserID,"Home Drive")
-			objShell.NameSpace("I:\").Self.Name = "Home Drive"
+			Call MapDrive ("H:", strFileServerUsers, "users$\" & strUserID,"Home Drive")
+			objShell.NameSpace("H:\").Self.Name = "Home Drive"
 		End If
 		
 		Call MapDrive ("T:",strFileServer,"Teams","Teams")
