@@ -718,9 +718,8 @@ REM Inform user that logon process is done -- Finished network log-on processes
 '*********************************************************************************************** 	
 '************************* End of Main Script Subs and Functions Below ************************* 	
 '***********************************************************************************************	
-
 REM Task-bar Setup
-	Sub TaskBarSetup ()
+	Sub TaskBarSetup()
  		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		' Sub:     		TaskBarSetup
 		' Purpose:  	Remove unwanted library-ms from users session along with pined taskbar items
@@ -728,155 +727,193 @@ REM Task-bar Setup
 		' Output:
 		' Dependencies	
 		' Usage:		Call TaskBarSetup  
-		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''	
-		If Not InStr(strComputerOULong,"Citrix") > 0 or InStr(strComputerOULong,"Desktop") > 0 Then
-			If UBound(arrOSVersion) = 2 Then
-				If CInt(arrOSVersion(0) & arrOSVersion(1)) >= 6.1 Then
-					REM Fix Libraries
-					If intProcessorWidth = "64" Then
-						If objFileSys.FileExists(StrShLib) Then
-							If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
-								Call UserPrompt ("Setting Up Libraries")
-								StrTemp = chr(34) & StrShLib & chr(34) & " remove " _
-									& chr(34) & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms" & chr(34) & " " _ 
-									& chr(34) & "c:\Users\Public\Documents" & chr(34)
-								'Call UserPrompt ("Libraries Command: " & StrTemp)
-								objWshShell.Run StrTemp, 0, False
-								Err.Clear
-							Else
-								'Call UserPrompt ("Documents.library-ms Missing: " & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms")
-							End If
-						Else
-							'Call UserPrompt ("ShLib Missing: " & StrShLib)	
-							If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
-								Call UserPrompt ("Setting Up Libraries")
-								StrTemp = chr(34) & "\\" & objSysInfo.DomainDNSName & "\NETLOGON\SysinternalsSuite\ShLib.exe" & chr(34) & " remove " _
-									& chr(34) & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms" & chr(34) & " " _ 
-									& chr(34) & "c:\Users\Public\Documents" & chr(34)
-								'Call UserPrompt ("Libraries Command: " & StrTemp)
-								objWshShell.Run StrTemp, 0, False
-								Err.Clear
-							Else
-								'Call UserPrompt ("Documents.library-ms Missing: " & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms")
-							End If
-									
-						End If
-					End If
-					Call UserPrompt ("Setting Up Pinned Task-bar Items")
-					REM Function PinItem(strlPath, strPin, blnRemove)
-					'Remove Microsoft Store
-					If  objFileSys.FileExists(objAUSM.path & "\Windows Store.lnk") Then
-						Call UserPrompt ("Un-Pin Microsoft Store " & IntTemp & "  to Task-bar: " _ 
-							& PinItem(objAUSM.path & "\Windows Store.lnk", "Taskbar", True))
-					End If
-					If  objFileSys.FileExists("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Store.lnk") Then
-						Call UserPrompt ("Un-Pin Microsoft Store " & IntTemp & "  to Task-bar: " _ 
-							& PinItem("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Store.lnk", "Taskbar", True))
-					End If
-					'Outlook, Excel
-						Select Case intProcessorWidth
-							Case 64
-								'Outlook, Excel
-								If  objFileSys.FolderExists(objProgramFilesx86.path & "\Microsoft Office") Then
-									Set objFolder = objFileSys.GetFolder(objProgramFilesx86.path & "\Microsoft Office")
-									For Each objSubFolder in objFolder.SubFolders
-										If InStr(objSubFolder.name,"Office") = 1 Then
-											If Right(objSubFolder.name,2) > IntTemp Then
-												If objFileSys.FileExists(objSubFolder.path & "\OUTLOOK.EXE") Then
-													IntTemp = Right(objSubFolder.name,2)
-												End If
+		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+	    'On Error Resume Next
+
+		If UBound(arrOSVersion) = 2 Then
+			' Need Windows 7/2008 R2 or newer 
+			If CInt(arrOSVersion(0) & arrOSVersion(1)) >= 6.1 Then
+				Call UserPrompt ("Setting Up Pinned Task-bar Items")
+				REM Function PinItem(strlPath, strPin, blnRemove)
+				'Remove Microsoft Store
+				If  objFileSys.FileExists(objAUSM.path & "\Windows Store.lnk") Then
+					Call UserPrompt ("Un-Pin Microsoft Store " & IntTemp & "  to Task-bar: " _ 
+						& PinItem(objAUSM.path & "\Windows Store.lnk", "Taskbar", True))
+				End If
+				If  objFileSys.FileExists("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Store.lnk") Then
+					Call UserPrompt ("Un-Pin Microsoft Store " & IntTemp & "  to Task-bar: " _ 
+						& PinItem("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Store.lnk", "Taskbar", True))	
+				End If
+				If  objFileSys.FileExists("C:\Program Files (x86)\Windows Media Player\wmplayer.exe") Then
+					Call UserPrompt ("Un-Pin Microsoft Store " & IntTemp & "  to Task-bar: " _ 
+						& PinItem("C:\Program Files (x86)\Windows Media Player\wmplayer.exe", "Taskbar", True))	
+				End If
+				If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Store.lnk") Then
+					objFileSys.deletefile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Store.lnk")
+				End If 
+				'Outlook, Excel
+					Select Case intProcessorWidth
+						Case 64
+							'Outlook, Excel x86 on x64
+							If  objFileSys.FolderExists(objProgramFilesx86.path & "\Microsoft Office") Then
+								Set objFolder = objFileSys.GetFolder(objProgramFilesx86.path & "\Microsoft Office")
+								For Each objSubFolder in objFolder.SubFolders
+									If InStr(objSubFolder.name,"Office") = 1 Then
+										If Right(objSubFolder.name,2) > IntTemp Then
+											If objFileSys.FileExists(objSubFolder.path & "\OUTLOOK.EXE") Then
+												IntTemp = Right(objSubFolder.name,2)
 											End If
 										End If
-									Next
-										
-									If Not IntTemp = "" Then
-										If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk") Then
-											Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk", "Taskbar", False))
-										Else
-											Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\OUTLOOK.EXE", "Taskbar", False))
-										End If
-										
-										If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk") Then
-											Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk", "Taskbar", False))
-										Else
-											Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\Excel.EXE", "Taskbar", False))
+									End If
+								Next
+								If Not IntTemp = "" Then
+									Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
+										& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\OUTLOOK.EXE", "Taskbar", False))
+									Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
+										& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\Excel.EXE", "Taskbar", False))
+								End If
+							'Outlook, Excel x64 on x64	
+							elseif objFileSys.FolderExists(objProgramFiles.path & "\Microsoft Office") then
+								Set objFolder = objFileSys.GetFolder(objProgramFiles.path & "\Microsoft Office")
+								For Each objSubFolder in objFolder.SubFolders
+									If InStr(objSubFolder.name,"Office") = 1 Then
+										If Right(objSubFolder.name,2) > IntTemp Then
+											If objFileSys.FileExists(objSubFolder.path & "\OUTLOOK.EXE") Then
+												IntTemp = Right(objSubFolder.name,2)
+											End If
 										End If
 									End If
-								End If
-								
-								'IE
-								arrTemp = Split(strIEVersion,".")
-								'Verify existing Shortcut
-								If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then
-									Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
-									'Test and Fix bad shortcut
-									If Instr(objShortcut.TargetPath,objProgramFilesx86.path) = 0 and Instr(objShortcut.WorkingDirectory,"%HOMEDRIVE%%HOMEPATH%") = 0 Then 
-										'Versions older than 11 need to be set for the 32-bit version. IE 11 and newer need to be set for 64-bit version
-										If cint(arrTemp(0)) < 11 Then
-											Set objShortcut = Nothing
-											objFileSys.deletefile objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer*.lnk"
-											Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-												& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
+								Next
+									
+								If Not IntTemp = "" Then
+									Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
+										& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\OUTLOOK.EXE", "Taskbar", False))
+									Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
+										& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\Excel.EXE", "Taskbar", False))
+								End If							
+							End If
+							
+							'IE
+							arrTemp = Split(strIEVersion,".")
+							'Verify existing Shortcut
+							If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then
+								Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
+								'Test and Fix bad shortcut
+								If Instr(objShortcut.TargetPath,objProgramFilesx86.path) = 0 and Instr(objShortcut.WorkingDirectory,"%HOMEDRIVE%%HOMEPATH%") = 0 Then 
+									'Versions older than 11 need to be set for the 32-bit version. IE 11 and newer need to be set for 64-bit version
+									If cint(arrTemp(0)) < 11 Then
+										Set objShortcut = Nothing
+										objFileSys.deletefile objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer*.lnk"
+										Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
+											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
+										If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then	
 											Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
 											objShortcut.TargetPath = objProgramFilesx86.path & "\Internet Explorer\iexplore.exe"
 											objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
 											objShortcut.save()
 											Set objShortcut = Nothing
-										Else
-											'Fix bad Working Directory
-											Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
-											'objShortcut.TargetPath = objProgramFilesx86.path & "\Internet Explorer\iexplore.exe"
-											objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
-											objShortcut.save()
-											Set objShortcut = Nothing
-										End If	
+										End If
 									Else
-										REM Good Shortcut
+										'Fix bad Working Directory
+										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
+										'objShortcut.TargetPath = objProgramFilesx86.path & "\Internet Explorer\iexplore.exe"
+										objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
+										objShortcut.save()
 										Set objShortcut = Nothing
-											Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-												& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
-											
-									End If
+									End If	
 								Else
-									REM Pin IE if it was not pinned before
-									
-									If cint(arrTemp(0)) < 11 Then
+									REM Good Shortcut
+									Set objShortcut = Nothing
 										Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-											& PinItem(objProgramFilesx86.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))
+											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
+										
+								End If
+							Else
+								REM Pin IE if it was not pinned before
+								
+								If cint(arrTemp(0)) < 11 Then
+									Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
+										& PinItem(objProgramFilesx86.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))
+									If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then
 										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
 										objShortcut.TargetPath = objProgramFilesx86.path & "\Internet Explorer\iexplore.exe"
 										objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
 										objShortcut.save()
 										Set objShortcut = Nothing
-									Else
-										Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-											& PinItem(objProgramFiles.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))
+									End If
+								Else
+									Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
+										& PinItem(objProgramFiles.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))
+									If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then
 										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
 										objShortcut.TargetPath = objProgramFiles.path & "\Internet Explorer\iexplore.exe"
 										objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
 										objShortcut.save()
 										Set objShortcut = Nothing
-									End If								
-								End If
-								Set arrTemp = nothing
-								Set objShortcut = Nothing
-								
-								'Chrome
-								If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk") Then
+									End If
+								End If								
+							End If
+							Set arrTemp = nothing
+							Set objShortcut = Nothing
+							
+							'Chrome
+								If objFileSys.FileExists(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk") Then
 									Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-										& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk", "Taskbar", False))
-								Else
-									If objFileSys.FileExists(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk") Then
-										Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-											& PinItem(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk", "Taskbar", False))
-									End If	
+										& PinItem(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk", "Taskbar", False))
 								End If	
 
-								'Windows Explorer
+							'Windows Explorer
+							If  objFileSys.FileExists(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk") Then
+								Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
+									& PinItem(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk", "Taskbar", False))
+							End If
+							If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then	
+								Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
+								If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
+									objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
+									objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
+									objShortcut.WorkingDirectory = ""
+									objShortcut.save()
+									Set objShortcut = Nothing
+								End If
+							End If 			
+						Case 32
+							'Outlook, Excel
+							If  objFileSys.FolderExists(objProgramFiles.path & "\Microsoft Office") Then
+								Set objFolder = objFileSys.GetFolder(objProgramFiles.path & "\Microsoft Office")
+								For Each objSubFolder in objFolder.SubFolders
+									If InStr(objSubFolder.name,"Office") = 1 Then
+										If Right(objSubFolder.name,2) > IntTemp Then
+											If objFileSys.FileExists(objSubFolder.path & "\OUTLOOK.EXE") Then
+												IntTemp = Right(objSubFolder.name,2)
+											End If
+										End If
+									End If
+								Next
+									
+								If Not IntTemp = "" Then
+									Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
+										& PinItem(objProgramFiles.path & "\Microsoft Office\Office" & IntTemp & "\OUTLOOK.EXE", "Taskbar", False))
+									Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
+										& PinItem(objProgramFiles.path & "\Microsoft Office\Office" & IntTemp & "\Excel.EXE", "Taskbar", False))
+								End If
+							End If
+							
+							'IE
+							If objFileSys.FileExists(objProgramFiles.path & "\Internet Explorer\iexplore.exe") Then
+								Call UserPrompt ("Pin Internet Explorer to Task-bar: " _ 
+									& PinItem(objProgramFiles.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))			
+							End If
+							'Chrome
+								If objFileSys.FileExists(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk") Then
+									Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
+										& PinItem(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk", "Taskbar", False))
+								End If	
+							
+							'Windows Explorer
+								If  objFileSys.FileExists(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk") Then
+									Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
+										& PinItem(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk", "Taskbar", False))
 									If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then
 										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
 										If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
@@ -886,169 +923,34 @@ REM Task-bar Setup
 											objShortcut.save()
 											Set objShortcut = Nothing
 										End If
-										Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk", "Taskbar", False))
-									Else
-											If  objFileSys.FileExists(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk") Then
-											
-												Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-													& PinItem(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk", "Taskbar", False))
-											End If
-										If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then	
-											Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
-											If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
-												objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
-												objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-												objShortcut.WorkingDirectory = ""
-												objShortcut.save()
-												Set objShortcut = Nothing
-											End If
-										End If 
-									End If	
-									
-							Case 32
-								'Outlook, Excel
-								If  objFileSys.FolderExists(objProgramFiles.path & "\Microsoft Office") Then
-									Set objFolder = objFileSys.GetFolder(objProgramFiles.path & "\Microsoft Office")
-									For Each objSubFolder in objFolder.SubFolders
-										If InStr(objSubFolder.name,"Office") = 1 Then
-											If Right(objSubFolder.name,2) > IntTemp Then
-												If objFileSys.FileExists(objSubFolder.path & "\OUTLOOK.EXE") Then
-													IntTemp = Right(objSubFolder.name,2)
-												End If
-											End If
-										End If
-									Next
-										
-									If Not IntTemp = "" Then
-										If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk") Then
-											Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk", "Taskbar", False))
-										Else
-											Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objProgramFiles.path & "\Microsoft Office\Office" & IntTemp & "\OUTLOOK.EXE", "Taskbar", False))
-										End If
-										
-										If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk") Then
-											Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk", "Taskbar", False))
-										Else
-											Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-												& PinItem(objProgramFiles.path & "\Microsoft Office\Office" & IntTemp & "\Excel.EXE", "Taskbar", False))
-										End If
-									End If
-								End If
-								
-								'IE
-								If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then
-									Call UserPrompt ("Pin Internet Explorer to Task-bar: " _ 
-										& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
-								Else
-									Call UserPrompt ("Pin Internet Explorer to Task-bar: " _ 
-										& PinItem(objProgramFiles.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))			
-								End If
-								
-								'Chrome
-								If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk") Then
-									Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-										& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk", "Taskbar", False))
-								Else
-									If objFileSys.FileExists(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk") Then
-										Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-											& PinItem(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk", "Taskbar", False))
-									End If	
-								End If
-								
-								'Windows Explorer
-								If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then
-									Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-										& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk", "Taskbar", False))
-										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
-										If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
-											objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
-											objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-											objShortcut.WorkingDirectory = ""
-											objShortcut.save()
-											Set objShortcut = Nothing
-										End If
-								Else
-									If  objFileSys.FileExists(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk") Then
-										Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-											& PinItem(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk", "Taskbar", False))
-										If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then
-											Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
-										If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
-											objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
-											objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-											objShortcut.WorkingDirectory = ""
-											objShortcut.save()
-											Set objShortcut = Nothing
-										End If
-										End If 
-									End If
+									End If 
 								End If	
-							Case Else
-						End Select	
-					End If
-									
-					If Not InGroup (objNTUser,"wwt-admin-accounts") Then	
-						'Remove Windows PowerShell
-						If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk") Then
+						Case Else
+					End Select	
+		
+				If Not InGroup (objNTUser,"wwt-admin-accounts") Then	
+					'Remove Windows PowerShell
+						If  objFileSys.FileExists(objWindows.path & "\system32\WindowsPowerShell\v1.0\powershell.exe") Then
 							Call UserPrompt ("Un-pin Windows PowerShell to Task-bar: " _ 
-								& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk", "Taskbar", True))
+								& PinItem(objWindows.path & "\system32\WindowsPowerShell\v1.0\powershell.exe", "Taskbar", True))
 						End If
-							
-						If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk") Then
-							If  objFileSys.FileExists(objWindows.path & "\system32\WindowsPowerShell\v1.0\powershell.exe") Then
-								Call UserPrompt ("Un-pin Windows PowerShell to Task-bar: " _ 
-									& PinItem(objWindows.path & "\system32\WindowsPowerShell\v1.0\powershell.exe", "Taskbar", True))
-							End If
-						End If		
-						
-						If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk") Then
-							objFileSys.DeleteFile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk")			
-						End If	
-						
-						'Remove Server Manager
-						If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk") Then
+					'Remove Server Manager
+						If  objFileSys.FileExists(objWindows.path & "\system32\system32\ServerManager.msc") Then
 							Call UserPrompt ("Un-pin Server Manager to Task-bar: " _ 
-								& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk", "Taskbar", True))
-						End If		
-						
-						If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk") Then
-							If  objFileSys.FileExists(objWindows.path & "\system32\system32\ServerManager.msc") Then
-								Call UserPrompt ("Un-pin Server Manager to Task-bar: " _ 
-									& PinItem(objWindows.path & "\system32\system32\ServerManager.msc", "Taskbar", True))
-							End If
-						End If	
-						
-						If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk") Then
-							objFileSys.DeleteFile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk")	
+								& PinItem(objWindows.path & "\system32\system32\ServerManager.msc", "Taskbar", True))
 						End If
-							
-						'Remove Windows Media Player
-						If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk") Then
+					'Remove Windows Media Player
+						If  objFileSys.FileExists(objAUSM.path & "\Programs\Windows Media Player.lnk") Then
 							Call UserPrompt ("Un-pin Windows Media Player to Task-bar: " _ 
-								& PinItem(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk", "Taskbar", True))
+								& PinItem(objAUSM.path & "\Programs\Windows Media Player.lnk", "Taskbar", True))
 						End If
-						If  objFileSys.FileExists(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk") Then
-							If  objFileSys.FileExists(objAUSM.path & "\Programs\Windows Media Player.lnk") Then
-								Call UserPrompt ("Un-pin Windows Media Player to Task-bar: " _ 
-									& PinItem(objAUSM.path & "\Programs\Windows Media Player.lnk", "Taskbar", True))
-							End If
-						If  objFileSys.FileExists(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk") Then
-							objFileSys.DeleteFile(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk")	
-						End If	
-							
-					End If	
-					'Remove Duplicate names
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*(*).lnk") Then
-						objFileSys.DeleteFile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*(*).lnk")
-					End If
+				End If	
+				'Remove Duplicate names
+				If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*(*).lnk") Then
+					objFileSys.DeleteFile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*(*).lnk")
 				End If
 			End If
-		End If 
-	
+		End If
 	End Sub
 REM PinCorrector
 	Sub PinCorrector(strFileName,strCorrectPath)
@@ -1922,10 +1824,11 @@ REM PinItem
 	'*										Taskbar		 (At least Windows 7)
 	'*										Start Menu	 (At least Windows 7)
 	'*										Quick Access (At least Windows 10)
-	'*
+	'*				   blnRemote		Un-Pin Item	
 	'* Dependencies:   objShell         Shell.Application object
 	'*                 objFileSys       File System object
 	'*				   arrOSVersion		Array that has Windows Version
+	'*				   objAppData		Appdata Folder Object
 	'* Returns:        True if the shortcut is created, else false
 	'********************************************************************
 		'On Error Resume Next
@@ -1935,10 +1838,13 @@ REM PinItem
 		Dim blnQuickAccess
 		Dim objFolder
 		Dim objFolderItem
+		Dim ObjFile
 		Dim strFolder
 		Dim strFile
-
+		Dim objUserPinnedTaskbar
+		Dim blnPinnedItemsTaskbar
 		blnQuickAccess = False
+		
 		
 		If UBound(arrOSVersion) = 2 Then
 			If CInt(arrOSVersion(0) & arrOSVersion(1)) >= 6.1 Then
@@ -1963,7 +1869,16 @@ REM PinItem
 			
 			Exit Function
 		End If
-
+		'Look for User Pinned Items for Taskbar
+		If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar") Then
+			blnPinnedItemsTaskbar = True
+			objUserPinnedTaskbar = objFileSys.GetFolder(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar")
+		Else
+			'***** Folder does not exist
+			blnPinnedItemsTaskbar = False
+		End If
+		
+		
 		strFolder = objFileSys.GetParentFolderName(strlPath)
 		strFile = objFileSys.GetFileName(strlPath)
 		'Call UserPrompt ( "Folder: " & strFolder )
@@ -1982,9 +1897,38 @@ REM PinItem
 			Case "TASKBAR"
 				For each itemverb in objFolderItem.verbs
 					If blnRemove Then
-						If Replace(itemverb.name, "&", "") = "Unpin from Taskbar" Then itemverb.DoIt
+						If Replace(itemverb.name, "&", "") = "Unpin from Taskbar" Then 
+							itemverb.DoIt
+							'Clean up Shortcuts for Unpinned item.
+							If  blnPinnedItemsTaskbar Then
+								For Each ObjFile in objUserPinnedTaskbar.Files
+									Set objShortcut = objWshShell.CreateShortcut(ObjFile.path )
+									If objFileSys.GetFileName(objShortcut.TargetPath) = objFileSys.GetFileName(ObjFile) Then
+										Set objShortcut = Nothing
+										ObjFile.Delete(True)
+									Else
+										Set objShortcut = Nothing
+									End If
+								Next
+							End If
+						End If
 					Else
-						If Replace(itemverb.name, "&", "") = "Pin to Taskbar" Then itemverb.DoIt
+						If Replace(itemverb.name, "&", "") = "Pin to Taskbar" Then 
+							'Clean up Shortcuts for Unpinned item.
+							If  blnPinnedItemsTaskbar Then
+								For Each ObjFile in objUserPinnedTaskbar.Files
+									Set objShortcut = objWshShell.CreateShortcut(ObjFile.path )
+									If objFileSys.GetFileName(objShortcut.TargetPath) = objFileSys.GetFileName(ObjFile) Then
+										Set objShortcut = Nothing
+										ObjFile.Delete(True)
+									Else
+										Set objShortcut = Nothing
+									End If
+								Next
+							End If
+							itemverb.DoIt
+							
+						End if
 					End if	
 			   Next 
 			Case "START MENU"
@@ -1995,7 +1939,7 @@ REM PinItem
 						If Replace(itemverb.name, "&", "") = "Pin to Start Menu" Then itemverb.DoIt
 					End If	
 				Next 
-			Case "QUICK ACCESS" 'Windows 10 --Needs more work to prefect
+			Case "QUICK ACCESS" 'Windows 10/2016 --Needs more work to prefect
 				For each itemverb in objFolderItem.verbs
 					If blnRemove Then
 						If Replace(itemverb.name, "&", "") = "Unpin from Quick Access" Then itemverb.DoIt
