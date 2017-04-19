@@ -1,6 +1,6 @@
 REM Version Info
-	'  Universal Logon Script 1.9.5.0
-	'  Updated 20170325
+	'  Universal Logon Script 1.9.5.1
+	'  Updated 20170419
 	'
 	'
 REM Source Info
@@ -11,7 +11,9 @@ REM Source Info
 	'
 	'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Option Explicit
-'On Error Resume Next
+'On Error resume next   ' - Enable error handling
+On Error goto 0        ' - Disable error handling
+
 REM Define Variables
 	Dim objFileSys
 	Dim objIntExplorer
@@ -48,18 +50,19 @@ REM Define Variables
 	Dim DicMappedDrives
 	Dim dicGroupList
 	Dim DicInstalledPrinters
-	
+	Dim DicServerPrinters
+
 	Dim strIEVersion
 	Dim strChromeVersion
 	Dim strFireFoxVersion
 	Dim strWorkstation 
-	Dim strRealWorkstation      'Local Computer Name
+	Dim strRealWorkstation  'Local Computer Name
 	Dim strUserGroups       'List of groups the user is a member of
-	Dim strFileServer		'Location of file server
+	Dim strFileServer	'Location of file server
 	Dim strFileServerUsers	'Location of Users Files
-	Dim strPrintOU			'Location of the groups for printers
+	Dim strPrintOU		'Location of the groups for printers
 	Dim strUserHomeShare	'Hold user home directory share
-	Dim strPrintServer		'Location of Print server
+	Dim strPrintServer	'Location of Print server
 	Dim strKey
 	Dim strUserID
 	Dim strComputerOU
@@ -113,6 +116,7 @@ REM Initialize common scripting objects
 REM Bind to dictionary object.
 	Set objSysInfo   = CreateObject("ADSystemInfo")
 	Set DicInstalledPrinters = CreateObject("Scripting.Dictionary")
+	Set DicServerPrinters = CreateObject("Scripting.Dictionary")
 	Set DicInstalledPrintersLocalExclude = CreateObject("Scripting.Dictionary")
 	Set DicMappedDrives = CreateObject("Scripting.Dictionary")
 	Set dicGroupList	= CreateObject("Scripting.Dictionary")
@@ -158,17 +162,16 @@ REM Set Global Variables
 	binChangeDefault = True
 	StrLogUNC="\\fp01\logs$\sessions_csv"
 	REM the Windows Dir is added at the end of the Setup the Shell Folders section
-	StrCompanyDefaultWallpaper="system32\oobe\info\backgrounds\background1920x1200.jpg"
+	StrCompanyDefaultWallpaper="local\full\path\companydefaultbackground.jpg"
 	StrCompanyDefaultWallpaperStyle="2"
 	strComputerOULong = CStr(objSysInfo.ComputerName)
-	StrCompanyDefaultWallpaper = objWindows.path & "\" & StrCompanyDefaultWallpaper
 	StrContact = "Support Desk @ "
-	StrShLib = objProgramFilesx86.path & "\SysinternalsSuite\ShLib.exe"
+	StrShLib = "ShLib.exe"
 	DateYMD = DatePart("yyyy",Date) _
         & Right("0" & DatePart("m",Date), 2) _
         & Right("0" & DatePart("d",Date), 2)
 	
-REM 
+REM Printer Exclude	
 	'List of Devices to exclude on local computers Put in Upper CASE
 	'DicInstalledPrintersLocalExclude.Add objItem.PortName, objItem.Name
 	DicInstalledPrintersLocalExclude.Add "SHRFAX","FAX"
@@ -231,7 +234,7 @@ REM Display welcome message
 	'Add horizontal line as a 'break'
 	call UserLine()
 REM  PrinterChange
-	'Call PrinterRemove("5","Software" & False) 'If All is put in it will remove all network printers all the time. The Second command is to change print servers
+	Call PrinterRemove("7","Software\" & strCompanyName,True) 'If All is put in it will remove all network printers all the time. The Second command is to change print servers
 REM Slow down the script
 	'WScript.Sleep 1500
 	'Call UserPrompt ("Computer OU: " & strComputerOU)
@@ -279,7 +282,7 @@ REM  Map drives, add shared printers and set default homepage based on computer 
 REM  This Section preforms actions based on User Name
 	REM Select Case strUserID
 		REM Case "user"
-			REM Call MapDrive ("U:",strFileServer,"Shared\SFTP","SFTP")
+			REM Call MapDrive ("U:",strFileServer,"Shared\SFTP","SFTP",True)
 		REM Case Else
 	REM End Select
 REM  This Section preforms actions based on Computer OU
@@ -290,7 +293,7 @@ REM  This Section preforms actions based on Computer OU
 
 REM  This section performs actions based on group membership
 	If InGroup( objNTUser,"Shared-Drive" )  Then
-		Call MapDrive ("S:",strFileServer,"Shared","Shared")
+		Call MapDrive ("S:",strFileServer,"Shared","Shared",True)
 	End If 	
 	REM If InGroup( objNTUser,"msgroup" )  Then
 		REM Call UserPrompt ("Starting Paper Vision in the background")
@@ -311,12 +314,12 @@ REM  This section performs actions based on group membership
 		If objFileSys.FolderExists("H:\") Then
 			objShell.NameSpace("H:\").Self.Name = "Home Drive"
 		Else
-			Call MapDrive ("H:", strFileServerUsers, "users$\" & strUserID,"Home Drive")
+			Call MapDrive ("H:", strFileServerUsers, "users$\" & strUserID,"Home Drive",True)
 			objShell.NameSpace("H:\").Self.Name = "Home Drive"
 		End If
 		
-		Call MapDrive ("T:",strFileServer,"Teams","Teams")
-		Call MapDrive ("S:",strFileServer,"Shared","Shared")
+		Call MapDrive ("T:",strFileServer,"Teams","Teams",True)
+		Call MapDrive ("S:",strFileServer,"Shared","Shared",True)
 
 		'Maps  Main Copiers
 		If (InStr(strComputerOULong,"Servers") = 0) and (InStr(strComputerOULong,"Managed") = 0) Then
@@ -328,333 +331,18 @@ REM  This section performs actions based on group membership
 	End If
 	
 	If InGroup( objNTUser,"IT" ) or InGroup (objNTUser,"admin-accounts") Then	
-		Call MapDrive ("T:",strFileServer,"Teams","Teams")
-		Call MapDrive ("S:",strFileServer,"Shared","Shared")
-		Call MapDrive ("R:",strFileServer,"Archive","Archive")
+		Call MapDrive ("T:",strFileServer,"Teams","Teams",True)
+		Call MapDrive ("S:",strFileServer,"Shared","Shared",True)
+		Call MapDrive ("R:",strFileServer,"Archive","Archive",True)
 	End If
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'Add horizontal line as a 'break'
-call UserLine()
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+	'Add horizontal line as a 'break'
+	call UserLine()
+	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 REM Task-bar Setup	
 	If Not InStr(strComputerOULong,"Citrix") > 0 or InStr(strComputerOULong,"Desktop") > 0 Then
-		If UBound(arrOSVersion) = 2 Then
-			If CInt(arrOSVersion(0) & arrOSVersion(1)) >= 6.1 Then
-				REM Fix Libraries
-				If intProcessorWidth = "64" Then
-					If objFileSys.FileExists(StrShLib) Then
-						If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
-							Call UserPrompt ("Setting Up Libraries")
-							StrTemp = chr(34) & StrShLib & chr(34) & " remove " _
-								& chr(34) & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms" & chr(34) & " " _ 
-								& chr(34) & "c:\Users\Public\Documents" & chr(34)
-							'Call UserPrompt ("Libraries Command: " & StrTemp)
-							objWshShell.Run StrTemp, 0, False
-							Err.Clear
-						Else
-							'Call UserPrompt ("Documents.library-ms Missing: " & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms")
-						End If
-					Else
-						'Call UserPrompt ("ShLib Missing: " & StrShLib)	
-						If objFileSys.FileExists( objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms") Then
-							Call UserPrompt ("Setting Up Libraries")
-							StrTemp = chr(34) & "\\" & objSysInfo.DomainDNSName & "\NETLOGON\SysinternalsSuite\ShLib.exe" & chr(34) & " remove " _
-								& chr(34) & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms" & chr(34) & " " _ 
-								& chr(34) & "c:\Users\Public\Documents" & chr(34)
-							'Call UserPrompt ("Libraries Command: " & StrTemp)
-							objWshShell.Run StrTemp, 0, False
-							Err.Clear
-						Else
-							'Call UserPrompt ("Documents.library-ms Missing: " & objAppData.path & "\Microsoft\Windows\Libraries\Documents.library-ms")
-						End If
-								
-					End If
-				End If
-				Call UserPrompt ("Setting Up Pinned Task-bar Items")
-				REM Function PinItem(strlPath, strPin, blnRemove)
-				'Remove Microsoft Store
-				If  objFileSys.FileExists(objAUSM.path & "\Windows Store.lnk") Then
-					Call UserPrompt ("Un-Pin Microsoft Store " & IntTemp & "  to Task-bar: " _ 
-						& PinItem(objAUSM.path & "\Windows Store.lnk", "Taskbar", True))
-				End If
-				If  objFileSys.FileExists("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Store.lnk") Then
-					Call UserPrompt ("Un-Pin Microsoft Store " & IntTemp & "  to Task-bar: " _ 
-						& PinItem("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Store.lnk", "Taskbar", True))
-				End If
-				'Outlook, Excel
-					Select Case intProcessorWidth
-						Case 64
-							'Outlook, Excel
-							If  objFileSys.FolderExists(objProgramFilesx86.path & "\Microsoft Office") Then
-								Set objFolder = objFileSys.GetFolder(objProgramFilesx86.path & "\Microsoft Office")
-								For Each objSubFolder in objFolder.SubFolders
-									If InStr(objSubFolder.name,"Office") = 1 Then
-										If Right(objSubFolder.name,2) > IntTemp Then
-											If objFileSys.FileExists(objSubFolder.path & "\OUTLOOK.EXE") Then
-												IntTemp = Right(objSubFolder.name,2)
-											End If
-										End If
-									End If
-								Next
-									
-								If Not IntTemp = "" Then
-									If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk") Then
-										Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk", "Taskbar", False))
-									Else
-										Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\OUTLOOK.EXE", "Taskbar", False))
-									End If
-									
-									If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk") Then
-										Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk", "Taskbar", False))
-									Else
-										Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objProgramFilesx86.path & "\Microsoft Office\Office" & IntTemp & "\Excel.EXE", "Taskbar", False))
-									End If
-								End If
-							End If
-							
-							'IE
-							arrTemp = Split(strIEVersion,".")
-							'Verify existing Shortcut
-							If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then
-								Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
-								'Test and Fix bad shortcut
-								If Instr(objShortcut.TargetPath,objProgramFilesx86.path) = 0 and Instr(objShortcut.WorkingDirectory,"%HOMEDRIVE%%HOMEPATH%") = 0 Then 
-									'Versions older than 11 need to be set for the 32-bit version. IE 11 and newer need to be set for 64-bit version
-									If cint(arrTemp(0)) < 11 Then
-										Set objShortcut = Nothing
-										objFileSys.deletefile objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer*.lnk"
-										Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
-										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
-										objShortcut.TargetPath = objProgramFilesx86.path & "\Internet Explorer\iexplore.exe"
-										objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
-										objShortcut.save()
-										Set objShortcut = Nothing
-									Else
-										'Fix bad Working Directory
-										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
-										'objShortcut.TargetPath = objProgramFilesx86.path & "\Internet Explorer\iexplore.exe"
-										objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
-										objShortcut.save()
-										Set objShortcut = Nothing
-									End If	
-								Else
-									REM Good Shortcut
-									Set objShortcut = Nothing
-										Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
-										
-								End If
-							Else
-								REM Pin IE if it was not pinned before
-								
-								If cint(arrTemp(0)) < 11 Then
-									Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-										& PinItem(objProgramFilesx86.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))
-									Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
-									objShortcut.TargetPath = objProgramFilesx86.path & "\Internet Explorer\iexplore.exe"
-									objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
-									objShortcut.save()
-									Set objShortcut = Nothing
-								Else
-									Call UserPrompt ("Pin Internet Explorer " & cint(arrTemp(0)) & " to Task-bar: " _ 
-										& PinItem(objProgramFiles.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))
-									Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk")
-									objShortcut.TargetPath = objProgramFiles.path & "\Internet Explorer\iexplore.exe"
-									objShortcut.WorkingDirectory = "%HOMEDRIVE%%HOMEPATH%"
-									objShortcut.save()
-									Set objShortcut = Nothing
-								End If								
-							End If
-							Set arrTemp = nothing
-							Set objShortcut = Nothing
-							
-							'Chrome
-							If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk") Then
-								Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-									& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk", "Taskbar", False))
-							Else
-								If objFileSys.FileExists(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk") Then
-									Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-										& PinItem(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk", "Taskbar", False))
-								End If	
-							End If	
-
-							'Windows Explorer
-								If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then
-									Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
-									If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
-										objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
-										objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-										objShortcut.WorkingDirectory = ""
-										objShortcut.save()
-										Set objShortcut = Nothing
-									End If
-									Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-										& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk", "Taskbar", False))
-								Else
-										If  objFileSys.FileExists(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk") Then
-										
-											Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-												& PinItem(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk", "Taskbar", False))
-										End If
-									If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then	
-										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
-										If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
-											objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
-											objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-											objShortcut.WorkingDirectory = ""
-											objShortcut.save()
-											Set objShortcut = Nothing
-										End If
-									End If 
-								End If	
-								
-						Case 32
-							'Outlook, Excel
-							If  objFileSys.FolderExists(objProgramFiles.path & "\Microsoft Office") Then
-								Set objFolder = objFileSys.GetFolder(objProgramFiles.path & "\Microsoft Office")
-								For Each objSubFolder in objFolder.SubFolders
-									If InStr(objSubFolder.name,"Office") = 1 Then
-										If Right(objSubFolder.name,2) > IntTemp Then
-											If objFileSys.FileExists(objSubFolder.path & "\OUTLOOK.EXE") Then
-												IntTemp = Right(objSubFolder.name,2)
-											End If
-										End If
-									End If
-								Next
-									
-								If Not IntTemp = "" Then
-									If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk") Then
-										Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Outlook.lnk", "Taskbar", False))
-									Else
-										Call UserPrompt ("Pin Outlook " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objProgramFiles.path & "\Microsoft Office\Office" & IntTemp & "\OUTLOOK.EXE", "Taskbar", False))
-									End If
-									
-									If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk") Then
-										Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Microsoft Office Excel.lnk", "Taskbar", False))
-									Else
-										Call UserPrompt ("Pin Excel " & IntTemp & "  to Task-bar: " _ 
-											& PinItem(objProgramFiles.path & "\Microsoft Office\Office" & IntTemp & "\Excel.EXE", "Taskbar", False))
-									End If
-								End If
-							End If
-							
-							'IE
-							If objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk") Then
-								Call UserPrompt ("Pin Internet Explorer to Task-bar: " _ 
-									& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Internet Explorer.lnk", "Taskbar", False))
-							Else
-								Call UserPrompt ("Pin Internet Explorer to Task-bar: " _ 
-									& PinItem(objProgramFiles.path & "\Internet Explorer\iexplore.exe", "Taskbar", False))			
-							End If
-							
-							'Chrome
-							If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk") Then
-								Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-									& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk", "Taskbar", False))
-							Else
-								If objFileSys.FileExists(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk") Then
-									Call UserPrompt ("Pin Google Chrome to Task-bar: " _ 
-										& PinItem(objAUSM.path & "\Programs\Google Chrome\Google Chrome.lnk", "Taskbar", False))
-								End If	
-							End If
-							
-							'Windows Explorer
-							If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then
-								Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-									& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk", "Taskbar", False))
-									Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
-									If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
-										objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
-										objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-										objShortcut.WorkingDirectory = ""
-										objShortcut.save()
-										Set objShortcut = Nothing
-									End If
-							Else
-								If  objFileSys.FileExists(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk") Then
-									Call UserPrompt ("Pin Windows Explorer to Task-bar: " _ 
-										& PinItem(objAUSM.path & "\Programs\Accessories\Windows Explorer.lnk", "Taskbar", False))
-									If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" ) Then
-										Set objShortcut = objWshShell.CreateShortcut(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Explorer.lnk" )
-									If Not objShortcut.Arguments = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" Then
-										objShortcut.TargetPath = "%SystemRoot%\explorer.exe"
-										objShortcut.Arguments  = "/e,::{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-										objShortcut.WorkingDirectory = ""
-										objShortcut.save()
-										Set objShortcut = Nothing
-									End If
-									End If 
-								End If
-							End If	
-						Case Else
-					End Select	
-				End If
-								
-				If Not InGroup (objNTUser,"wwt-admin-accounts") Then	
-					'Remove Windows PowerShell
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk") Then
-						Call UserPrompt ("Un-pin Windows PowerShell to Task-bar: " _ 
-							& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk", "Taskbar", True))
-					End If
-						
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk") Then
-						If  objFileSys.FileExists(objWindows.path & "\system32\WindowsPowerShell\v1.0\powershell.exe") Then
-							Call UserPrompt ("Un-pin Windows PowerShell to Task-bar: " _ 
-								& PinItem(objWindows.path & "\system32\WindowsPowerShell\v1.0\powershell.exe", "Taskbar", True))
-						End If
-					End If		
-					
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk") Then
-						objFileSys.DeleteFile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows PowerShell.lnk")			
-					End If	
-					
-					'Remove Server Manager
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk") Then
-						Call UserPrompt ("Un-pin Server Manager to Task-bar: " _ 
-							& PinItem(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk", "Taskbar", True))
-					End If		
-					
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk") Then
-						If  objFileSys.FileExists(objWindows.path & "\system32\system32\ServerManager.msc") Then
-							Call UserPrompt ("Un-pin Server Manager to Task-bar: " _ 
-								& PinItem(objWindows.path & "\system32\system32\ServerManager.msc", "Taskbar", True))
-						End If
-					End If	
-					
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk") Then
-						objFileSys.DeleteFile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Server Manager.lnk")	
-					End If
-						
-					'Remove Windows Media Player
-					If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk") Then
-						Call UserPrompt ("Un-pin Windows Media Player to Task-bar: " _ 
-							& PinItem(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk", "Taskbar", True))
-					End If
-					If  objFileSys.FileExists(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk") Then
-						If  objFileSys.FileExists(objAUSM.path & "\Programs\Windows Media Player.lnk") Then
-							Call UserPrompt ("Un-pin Windows Media Player to Task-bar: " _ 
-								& PinItem(objAUSM.path & "\Programs\Windows Media Player.lnk", "Taskbar", True))
-						End If
-					If  objFileSys.FileExists(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk") Then
-						objFileSys.DeleteFile(objAUSM.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Windows Media Player.lnk")	
-					End If	
-						
-				End If	
-				'Remove Duplicate names
-				If  objFileSys.FileExists(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*(*).lnk") Then
-					objFileSys.DeleteFile(objAppData.path & "\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*(*).lnk")
-				End If
-			End If
-		End If
+		call LibrariesCleanup()
+		call TaskBarSetup()	
 	End If 
 REM Shortcut Clean Up
 	If Not InStr(strComputerOULong,"Citrix") > 0 or InStr(strComputerOULong,"Desktop") > 0 Then
@@ -671,10 +359,10 @@ REM Shortcut Clean Up
 			REM ShortcutCleanUp  strUserHomeShare & "\Desktop"
 		REM End If 
 	End If
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'Add horizontal line as a 'break'
-call UserLine()
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+	'Add horizontal line as a 'break'
+	call UserLine()
+	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 REM Setup Other Settings
 	Call UserPrompt ("Setting Up Other Settings")
 		objWshShell.RegWrite "HKCU\Software\VMware, Inc.\VMware Tools\ShowTray", 0 , "REG_DWORD"
@@ -728,7 +416,8 @@ REM Task-bar Setup
 		' Dependencies	
 		' Usage:		Call TaskBarSetup  
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-	    'On Error Resume Next
+		'On Error resume next   ' - Enable error handling
+		On Error goto 0        ' - Disable error handling
 
 		If UBound(arrOSVersion) = 2 Then
 			' Need Windows 7/2008 R2 or newer 
@@ -1043,7 +732,8 @@ REM IE Settings
 		' Dependencies		
 		' Usage:		Call IESettings  
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  'On Error Resume Next
+	 'On Error resume next   ' - Enable error handling
+	On Error goto 0        ' - Disable error handling
 	Rem Stops IE from checking for updates
 		objWshShell.RegWrite "HKCU\Software\Microsoft\Internet Explorer\Main\NoUpdateCheck", 1 , "REG_DWORD"
 			
@@ -1516,58 +1206,111 @@ REM Add Printer Sub
 		' Input:
 		'           	strPrtServer        Name of print server
 		'           	strPrtShare         Share name of printer
-		'				blnNoError				Disables Print Errors True/False
+		'				blnNoError				Disables Errors pop-ups True/False
 		'				blnSetDefaultPrinter	Set as Default Printer True/False
 		' Output:
-		' Dependencies	binPrintSpooler,DicInstalledPrinters
+		' Dependencies	binPrintSpooler,DicInstalledPrinters,DicServerPrinters
 		' Usage:
 		'           	Call AddPrinter ( "MyPrintServer", "SharedPrinter", False, True)
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-		On Error Resume Next
-
+		On Error resume next   ' - Enable error handling
+		'On Error goto 0        ' - Disable error handling
+		
 		Dim strPrtPath    'Full path to printer share
 		Dim strMsg        'Message output to user
 		Dim objNTPrinter
 		Dim objWMIService
+		Dim ObjPrintQueue
 		Dim colItems, objItem
 		Dim arrPrinterSplit
 		Dim binMappedPrinter
+		Dim binPrinterExists
+
 		'Build path to printer share
 		strPrtPath = "\\" & strPrtServer & "\" & strPrtShare
 		binMappedPrinter = False
+		binPrinterExists = False
 
 		'Printer Spooler is running then map printers
 		If binPrintSpooler Then
+			'Do not try to connect to a print server we already declared as dead. 
+			'Disabled output to keep output screen clean. 
+			If DicServerPrinters.Exists(strPrtServer) Then
+				strMsg = "Print server " & strPrtServer & " could not be contacted. "  & vbCrLf _
+					& "Please contact: " & StrContact & vbCrLf _
+					& "Ask them to check the " & strPrtServer & " server." _
+					& vbCrLf & vbCrLf _
+					& "Let them know that you are unable to connect to the '" _
+					& strPrtShare & "' printer." 
+				'Show error if it is still having errors
+				If blnNoError = False Then
+					'objWshShell.Popup strMsg,, "Logon Error! Unable to connect to network printer.", 48
+					err.clear
+					Exit Sub
+				Else
+					'Call UserPrompt ("<pre>" + strMsg + "</pre>")
+					err.clear
+					Exit Sub									
+				End If
+			End If
 			'Tests to see if the printer is already mapped.
 			If Not DicInstalledPrinters.Exists(strPrtShare) Then
-				'Getting Network Printer Object
-				Set objNTPrinter = GetObject ("WinNT://" & strPrtServer & "/" & strPrtShare)
-				'Test Printer Object
-				If IsObject( objNTPrinter ) AND ( Not objNTPrinter.Name = "" AND objNTPrinter.Class = "PrintQueue")  Then
-						strMsg = "Unable to connect to network printer. " & vbCrLf _
-							& "Please contact: " & StrContact & vbCrLf _
-							& "Ask them to check the " & strPrtServer & " server." _
-							& vbCrLf & vbCrLf _
-							& "Let them know that you are unable to connect to the '" _
-							& strPrtShare & "' printer." _
-							& vbCrLf & vbCrLf _
-							& "Error: " & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
-					'Show error if it is still having errors
-					If  Not Err.Number = 0 Then
-						If (blnNoError = False) and (Not Err.Source = "") Then
-							objWshShell.Popup strMsg,, "Logon Error! Unable to connect to network printer.", 48
-							err.clear
-							Exit Sub
-						Else
-							Call UserPrompt (strMsg)
-							err.clear
-							Exit Sub
+				'Test if printer exists on print server.
+				If Not DicServerPrinters.Exists(strPrtShare) Then
+					'Getting Network Printer Object
+					Set objNTPrinter = GetObject("WinNT://" & strPrtServer & ",Computer")
+						
+					If IsNull(objNTPrinter) or  Err.Number <> 0 Then
+						If Not DicServerPrinters.Exists(strPrtServer) Then
+							DicServerPrinters.Add strPrtServer, "Removed"
+						End If
+						'Could not find printer on print server.
+						strMsg = strPrtShare & " is not found on print server. " & vbCrLf _
+						& "Please contact: " & StrContact & vbCrLf _
+						& "Ask them to check the " & strPrtServer & " server." _
+						& vbCrLf & vbCrLf _
+						& "Let them know that you are unable to connect to the '" _
+						& strPrtShare & "' printer." _
+						& vbCrLf & vbCrLf _
+						& "Error: " & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
+						'Show error if it is still having errors
+						If (Not Err.Number = 0) and (Not Err.Source = "") Then
+							If blnNoError = False Then
+								objWshShell.Popup strMsg,, "Logon Error! Unable to connect to network printer.", 48
+								err.clear
+								Exit Sub
+							Else
+								Call UserPrompt ("<pre>" + strMsg + "</pre>")
+								err.clear
+								Exit Sub									
+							End If
 						End If
 					End If
-					objWshNetwork.AddWindowsPrinterConnection strPrtPath
+					objNTPrinter.Filter = Array("PrintQueue")
+					For Each ObjPrintQueue In objNTPrinter
+						'WScript.Echo ObjPrintQueue.PrinterName
+						'Call UserPrompt (ObjPrintQueue.Name)
+						If Not IsNull(ObjPrintQueue.Name) Then
+							If Not DicServerPrinters.Exists("\\" & strPrtServer & "\" & ObjPrintQueue.Name) Then 
+								DicServerPrinters.Add "\\" & strPrtServer & "\" & ObjPrintQueue.Name, ObjPrintQueue.Name
+							End If
+							If ObjPrintQueue.Name = strPrtShare Then					
+								binPrinterExists = True
+							End if 
+						End If
+					Next				
+				Else
+					If Not DicServerPrinters.Item(strPrtShare) = "Removed" Then
+						binPrinterExists = True
+					End If
+				End If
+				
+				'Map Printers
+				If binPrinterExists Then
+					'objWshNetwork.AddWindowsPrinterConnection strPrtPath
 					'Check error condition and output appropriate user message
-					If Not Err.Number = 0 Then
-						'WScript.Sleep 50
+					If Err.Number <> 0 Then
+					   
 						Err.clear
 						Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\CIMV2")
 						'Verify that printer is mapped			
@@ -1581,6 +1324,7 @@ REM Add Printer Sub
 								End IF
 							Next
 							If binMappedPrinter Then
+								'Printer did map correctly
 								'Adds printer to Dictionary
 								DicInstalledPrinters.Add strPrtShare, strPrtShare	
 								If blnSetDefaultPrinter Then
@@ -1591,7 +1335,7 @@ REM Add Printer Sub
 									Call UserPrompt ("Successfully added printer connection to " & strPrtPath)	
 								End If
 							Else
-								Call UserPrompt ( "Trying to map printer " & strPrtShare & " again")
+								'Call UserPrompt ( "Trying to map printer " & strPrtShare & " again")
 								'Try Mapping Printer Again
 								objWshNetwork.AddWindowsPrinterConnection strPrtPath
 								strMsg = "Unable to connect to network printer. " & vbCrLf _
@@ -1603,32 +1347,35 @@ REM Add Printer Sub
 									& vbCrLf & vbCrLf _
 									& "Error: " & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
 								'Show error if it is still having errors
-								Call UserPrompt (strMsg)
-								If  Not Err.Number = 0 Then
-									If (Not Err.Source = "") and (blnNoError = False) Then
-										objWshShell.Popup strMsg,, "Logon Error! Unable to connect to network printer.", 48
-										err.clear
-										Exit Sub
-									Else
-										Call UserPrompt (strMsg)
-										err.clear
-										Exit Sub									
-									End If
-								Else
-									'Adds printer to Dictionary
-									DicInstalledPrinters.Add strPrtShare, strPrtShare	
-									If blnSetDefaultPrinter Then
-										'Set Printer as default
-										Call UserPrompt ("<h3>Setting newly added default printer on 2nd try: <font color=" & chr(34) & "green" & chr(34) & ">" & strPrtShare & "</font></h3>")
-										objWshNetwork.SetDefaultPrinter strPrtPath
-									Else
-										Call UserPrompt ("Successfully added printer connection on 2nd try: " & strPrtPath)	
-									End If
-								End If
+								
+								Select Case Err.Number
+									Case 0 
+										'Printer mapped correctly on 2nd try.
+										'Adds printer to Dictionary
+										DicInstalledPrinters.Add strPrtShare, strPrtShare	
+										If blnSetDefaultPrinter Then
+											'Set Printer as default
+											Call UserPrompt ("<h3>Setting newly added default printer on 2<sup>nd</sup> try: <font color=" & chr(34) & "green" & chr(34) & ">" & strPrtShare & "</font></h3>")
+											objWshNetwork.SetDefaultPrinter strPrtPath
+										Else
+											Call UserPrompt ("Successfully added printer connection on 2<sup>nd</sup> try: " & strPrtPath)	
+										End If
+									Case Else
+										If blnNoError = False Then
+											objWshShell.Popup strMsg,, "Logon Error! Unable to connect to network printer.", 48
+											err.clear
+											Exit Sub
+										Else
+											Call UserPrompt ("<pre>" + strMsg + "</pre>")
+											err.clear
+											Exit Sub									
+										End If
+								End Select
 							End If
 						End If						
-						
+							
 					Else
+						'Printer mapped correctly 1st time.
 						'Adds printer to Dictionary
 						DicInstalledPrinters.Add strPrtShare, strPrtShare	
 						If blnSetDefaultPrinter Then
@@ -1638,10 +1385,31 @@ REM Add Printer Sub
 						Else
 							Call UserPrompt ("Successfully added printer connection to " & strPrtPath)	
 						End If
-										
-					End If	
+					End if
+				Else
+					'Could not find printer on print server.
+					strMsg = strPrtShare & " is not found on print server. " & vbCrLf _
+					& "Please contact: " & StrContact & vbCrLf _
+					& "Ask them to check the " & strPrtServer & " server." _
+					& vbCrLf & vbCrLf _
+					& "Let them know that you are unable to connect to the '" _
+					& strPrtShare & "' printer." _
+					& vbCrLf & vbCrLf _
+					& "Error: " & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
+					'Show error if it is still having errors
+					If (Not Err.Number = 0) and (Not Err.Source = "") Then
+						If blnNoError = False Then
+							objWshShell.Popup strMsg,, "Logon Error! Unable to connect to network printer.", 48
+							err.clear
+							Exit Sub
+						Else
+							Call UserPrompt ("<pre>" + strMsg + "</pre>")
+							err.clear
+							Exit Sub									
+						End If
+					End If
 				End if
-				
+	
 			Else
 				'Already connected to to printer
 				If blnSetDefaultPrinter Then
@@ -1658,7 +1426,7 @@ REM Add Printer Sub
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 REM MapDrive Sub
-	Private Sub MapDrive( strDrive, strServer, strShare,strDriveName )
+	Private Sub MapDrive( strDrive, strServer, strShare,strDriveName,blnNoError )
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		' Sub:      	MapDrive
 		' Purpose:  	Map a drive to a shared folder
@@ -1666,29 +1434,51 @@ REM MapDrive Sub
 		'           	strDrive    Drive letter to which share is mapped
 		'           	strServer   Name of server that hosts the share
 		'           	strShare    Share name
-		'
+		'				blnNoError	Disables Errors pop-ups True/False
 		' Output:
 		' Dependencies	DicMappedDrives
 		' Usage:
 		'           	Call MapDrive ("X:", "StaffServer", "StaffShare","Staff Share")
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-		On Error Resume Next
+		On Error resume next   ' - Enable error handling
+		'On Error goto 0        ' - Disable error handling
 
 		Dim strPath       'Full path to printer share
-		Dim blnError      'True / False error condition
+												 
 		Dim strMsg		  'Error Message 
 		Dim objFileSys, objWshShell, objShell, objWshNetwork
+		Dim objDrive
 		
 		Set objFileSys    = CreateObject( "Scripting.FileSystemObject" )
 		Set objShell 	  = CreateObject( "Shell.Application" )
 		Set objWshNetwork = CreateObject( "WScript.Network" )
 		Set objWshShell   = CreateObject( "WScript.Shell" )
-		
-		blnError = False
+
 		'Build path to share
 		strPath = "\\" & strServer & "\" & strShare
-		'Call UserPrompt (strpath)
-
+		'Call UserPrompt (strpath)	
+		
+		'Do not try to connect to a print server we already declared as dead. 
+		'Disabled output to keep output screen clean. 
+		If DicMappedDrives.Exists(strServer) Then
+			strMsg = "File server " & strServer & " could not be contacted. "  & vbCrLf _
+				& "Please contact: " & StrContact & vbCrLf _
+				& "Ask them to check the " & strServer & " server." _
+				& vbCrLf & vbCrLf _
+				& "Let them know that you are unable to connect to the '" _
+				& strPath & "' network share." 
+			'Show error if it is still having errors
+			If blnNoError = False Then
+				'objWshShell.Popup strMsg,, "Logon Error! Unable to connect to network printer.", 48
+				err.clear
+				Exit Sub
+			Else
+				'Call UserPrompt ("<pre>" + strMsg + "</pre>")
+				err.clear
+				Exit Sub									
+			End If
+		End If
+		
 		'Check to see if the mapped drive is the same as the one we are trying to map.
 		If DicMappedDrives.Exists(strDrive) Then
 			If Not DicMappedDrives.Item(strDrive) = strPath Then
@@ -1696,8 +1486,22 @@ REM MapDrive Sub
 				'This assures everyone has the same drive mappings
 				objWshNetwork.RemoveNetworkDrive strDrive, , True
 				If Not Err.Number = 0 Then 
-					objWshShell.Popup "Network Mapping Error: Error: "   _
-					& vbCrLf & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source,, "Logon Error !", 48
+
+					strMsg = "Network Drive Mapping Error: " & vbCrLf & _
+							 "Please contact:  " & StrContact  & vbCrLf & _
+							 "Ask them to check the " & strServer & " server." & vbCrLf & _
+							 "Let them know that you are unable to remove " & _
+							 "'" & strPath & "' share" & _
+							 vbCrLf & "Error Number: " &  Err.Number  & vbCrLf & " Description: " & Err.Description & vbCrLf &" Source: " & Err.Source
+					If blnNoError = False Then
+						objWshShell.Popup strMsg,, "Network Mapping Error:", 48
+						err.clear
+						Exit Sub
+					Else
+						Call UserPrompt ("<pre>" + strMsg + "</pre>")
+						err.clear
+						Exit Sub									
+					End If
 				End If 
 				
 				'Test to see if share exists. Proceed if yes, set error condition if no.
@@ -1705,33 +1509,95 @@ REM MapDrive Sub
 					Err.Clear
 					'To get around a issue with Windows Vista/7 drive mapping issues need to make persistent connection
 					objWshNetwork.MapNetworkDrive strDrive, strPath, True
-					If Err.Number = 0 And objFileSys.DriveExists(strDrive & "\") Then
-						DicMappedDrives.Item(strDrive) = strPath
-					End If 
+					Select Case Err.Number
+						Case 0
+							'Drive mapped fine
+							If objFileSys.DriveExists(strDrive & "\") Then
+								'Drive mapping verified
+								DicMappedDrives.Item(strDrive) = strPath
+							Else
+								strMsg = "Unable to connect to network share. " & vbCrLf & _
+										 "Please contact:  " & StrContact  & vbCrLf & _
+										 "Ask them to check the " & strServer & " server." & vbCrLf & _
+										 "Let them know that you are unable to connect to the " & _
+										 "'" & strPath & "' share" & _
+										 vbCrLf & "Error Number: " &  Err.Number  & vbCrLf & " Description: " & Err.Description & vbCrLf &" Source: " & Err.Source
+								If blnNoError Then
+									Call UserPrompt ("<pre>" + strMsg + "</pre>")
+									err.clear
+									Exit Sub		
+								Else
+									objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+									err.clear
+									Exit Sub
+								End If				
+							End If
+						Case Else
+							strMsg = "Unable to connect to network share. " & vbCrLf & _
+									 "Please contact:  " & StrContact  & vbCrLf & _
+									 "Ask them to check the " & strServer & " server." & vbCrLf & _
+									 "Let them know that you are unable to connect to the " & _
+									 "'" & strPath & "' share" & _
+									 vbCrLf & "Error Number: " &  Err.Number  & vbCrLf & " Description: " & Err.Description & vbCrLf &" Source: " & Err.Source
+							If blnNoError Then
+								Call UserPrompt ("<pre>" + strMsg + "</pre>")
+								err.clear
+								Exit Sub		
+							Else
+								objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+								err.clear
+								Exit Sub
+							End If				
+					End Select
 				Else
-					blnError = True
-				End If
-				' Test if drive mapped.
-				If objFileSys.DriveExists(strDrive) = False Then
-					blnError = True
-				End If
-				'Check error condition and output appropriate user message
-				If Err.Number <> 0 And blnError = True Then
-					'Display message box informing user that the connection failed
 					strMsg = "Unable to connect to network share. " & vbCrLf & _
 							 "Please contact:  " & StrContact  & vbCrLf & _
 							 "Ask them to check the " & strServer & " server." & vbCrLf & _
 							 "Let them know that you are unable to connect to the " & _
 							 "'" & strPath & "' share" & _
-							 vbCrLf & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
-					objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
-				Else
-					If Not strDriveName = "" Then
-						objShell.NameSpace(strDrive).Self.Name = strDriveName
-					End If
-					Call UserPrompt ("Successfully re-mapped drive connection to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
+							 vbCrLf & "Error Number: " &  Err.Number  & vbCrLf & " Description: " & Err.Description & vbCrLf &" Source: " & Err.Source
+					If blnNoError Then
+						Call UserPrompt ("<pre>" + strMsg + "</pre>")
+						err.clear
+						Exit Sub		
+					Else
+						objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+						err.clear
+						Exit Sub
+					End If				
 				End If
-
+				' Test if drive mapped.
+				If objFileSys.DriveExists(strDrive & "\") Then
+					Call UserPrompt ("Successfully re-mapped drive connection to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
+					set objDrive = objShell.NameSpace(strDrive & "\")
+					If (Not objDrive.Self.Name = strDriveName) and (Not strDriveName = "") Then
+						objDrive.Self.Name = strDriveName
+					End If
+				Else
+					'Drive did not map correctly
+					strMsg = "Unable to connect to network share. " & vbCrLf & _
+							 "Please contact:  " & StrContact  & vbCrLf & _
+							 "Ask them to check the " & strServer & " server." & vbCrLf & _
+							 "Let them know that you are unable to connect to the " & _
+							 "'" & strPath & "' share" & _
+							 vbCrLf & "Error Number: " &  Err.Number  & vbCrLf & " Description: " & Err.Description & vbCrLf &" Source: " & Err.Source
+					If blnNoError Then
+						Call UserPrompt ("<pre>" + strMsg + "</pre>")
+						err.clear
+						Exit Sub		
+					Else
+						objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+						err.clear
+						Exit Sub
+					End If																													   
+				End If
+			Else
+				'Call UserPrompt ("<font color=" & chr(34) & "gray" & chr(34) & ">Drive already connected to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) </font>" )
+				set objDrive = objShell.NameSpace(strDrive & "\")
+				If (Not objDrive.Self.Name = strDriveName) and (Not strDriveName = "") Then
+					objDrive.Self.Name = strDriveName
+					Call UserPrompt ("Updated drive name " & strDriveName & " on drive " & strDrive)
+				End If
 			End If 
 		Else
 			'If the drive does not exists map it.
@@ -1739,76 +1605,99 @@ REM MapDrive Sub
 			If Not objFileSys.DriveExists(strDrive & "\") Then
 				If objFileSys.FolderExists(strPath) Then
 					'To get around a issue with Windows Vista/7 drive mapping issue need to make persistent connection
+					Err.Clear
 					objWshNetwork.MapNetworkDrive strDrive, strPath, True
 					Select Case Err.Number
 					Case 0
-						If Not strDriveName = "" Then
-							objShell.NameSpace(strDrive).Self.Name = strDriveName
-						End If
-						Call UserPrompt ("Successfully added mapped drive connection to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
-						If objFileSys.DriveExists(strDrive & "\") Then DicMappedDrives.Add  strDrive, strPath				
-					Case -2147024865, -2147024832, -2147024811, -2147023694, 80070055 
-						Call UserPrompt ("Drive already mapped to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
+						'No Error number
 					Case Else
-						blnError = True
-						'Display message box informing user that the connection failed
+					 
+																	
 						strMsg = "Unable to connect to network share. " & vbCrLf & _
 								 "Please contact:  " & StrContact  & vbCrLf & _
 								 "Ask them to check the " & strServer & " server." & vbCrLf & _
 								 "Let them know that you are unable to connect to the " & _
 								 "'" & strPath & "' share" & _
-								 vbCrLf & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
-						objWshShell.Popup strMsg,, "Logon Error Mapping Drive!", 48
-					End Select 
-					
-
-				Else
-					strMsg = "Unable to connect to network share. " & vbCrLf & _
-							 "Please contact:  " & StrContact  & vbCrLf & _
-							 "Ask them to check the " & strServer & " server." & vbCrLf & _
-							 "Let them know that you are unable to connect to the " & _
-							 "'" & strPath & "' share" & _
-							 vbCrLf & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
-					objWshShell.Popup strMsg,, "Logon Error Share Does Not Exists!", 48
-				End If
-				
-			Else
-				strMsg = "Unable to connect to network share. " & vbCrLf & _
-						 "Please contact:  " & StrContact  & vbCrLf & _
-						 "Ask them to check the " & strServer & " server." & vbCrLf & _
-						 "Let them know that you are unable to connect to the " & _
-						 "'" & strPath & "' share" & _
-						 vbCrLf & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
-				objWshShell.Popup strMsg,, "Logon Error Drive Already Mapped!", 48
-				If objFileSys.FolderExists(strDrive) Then
-						blnError = False
-					Else 
-						Err.Clear
-						objWshNetwork.MapNetworkDrive strDrive, strPath
+								 vbCrLf & "Error Number: " &  Err.Number  & vbCrLf & " Description: " & Err.Description & vbCrLf &" Source: " & Err.Source
+						If blnNoError Then
+							Call UserPrompt ("<pre>" + strMsg + "</pre>")
+							err.clear
+							Exit Sub		
+						Else
+							objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+							err.clear
+							Exit Sub
+						End If				
+					End Select			
+					' Test if drive mapped.
+					If objFileSys.DriveExists(strDrive) Then
+						Call UserPrompt ("Successfully mapped drive connection to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
+						DicMappedDrives.Add  strServer, strPath
+						If (Not objShell.NameSpace(strDrive).Self.Name = strDriveName) and (Not strDriveName = "") Then
+							objShell.NameSpace(strDrive).Self.Name = strDriveName
+						End If
+					Else
+						'Drive did not map correctly
+													 
 						Select Case Err.Number
 						Case 0
-							If Not strDriveName = "" Then
-								objShell.NameSpace(strDrive).Self.Name = strDriveName
-							End If
-							Call UserPrompt ("Successfully added mapped drive connection to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
-
-							If Err.Number = 0 Then
-								DicMappedDrives.Add  strDrive, strPath
-							End If 					
-						Case -2147024865, -2147024832, -2147024811, 80070055 
-							Call UserPrompt ("Drive already mapped to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
-						Case Else
-							blnError = True
-							'Display message box informing user that the connection failed
+							'No Error number
+						Case Else									 
 							strMsg = "Unable to connect to network share. " & vbCrLf & _
 									 "Please contact:  " & StrContact  & vbCrLf & _
 									 "Ask them to check the " & strServer & " server." & vbCrLf & _
 									 "Let them know that you are unable to connect to the " & _
 									 "'" & strPath & "' share" & _
-									 vbCrLf & Err.Number  & " Description: " & Err.Description & " Source: " & Err.Source
-							objWshShell.Popup strMsg,, "Logon Error 2nd Try!", 48
+									 vbCrLf & "Error Number: " &  Err.Number  & vbCrLf & " Description: " & Err.Description & vbCrLf &" Source: " & Err.Source
+							If blnNoError Then
+								Call UserPrompt ("<pre>" + strMsg + "</pre>")
+								err.clear
+								Exit Sub		
+							Else
+								objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+								err.clear
+								Exit Sub
+							End If				
 						End Select
 					End If
+				Else
+					'Share/Folder does not exist
+					'Adding to dictionary to avoid trying to may drive again. 
+					DicMappedDrives.Add  strServer, strPath
+					strMsg = "Unable to connect to network share. Network Share inaccessible. " & vbCrLf & _
+							 "Please contact:  " & StrContact  & vbCrLf & _
+							 "Ask them to check the " & strServer & " server." & vbCrLf & _
+							 "Let them know that you are unable to connect to the " & _
+							 "'" & strPath & "' share" 
+					If blnNoError Then
+						Call UserPrompt ("<pre>" + strMsg + "</pre>")
+						err.clear
+						Exit Sub		
+					Else
+						objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+						err.clear
+						Exit Sub
+					End If				
+				End If
+			Else
+				'Drive exist Can not use
+				
+				'Adding to dictionary to avoid trying to may drive again. 
+					DicMappedDrives.Add  strServer, strPath
+				strMsg = "Unable to connect to network share. Drive is in use." & vbCrLf & _
+						 "Please contact:  " & StrContact  & vbCrLf & _
+						 "Ask them to check the " & strServer & " server." & vbCrLf & _
+						 "Let them know that you are unable to connect to the " & _
+						 "'" & strPath & "' share" 
+				If blnNoError Then
+					Call UserPrompt ("<pre>" + strMsg + "</pre>")
+					err.clear
+					Exit Sub		
+				Else
+					objWshShell.Popup strMsg,, "Logon Error Re-Mapping Drive!", 48
+					err.clear
+					Exit Sub
+				End If				
 			End if 
 		End If
 
@@ -2277,7 +2166,8 @@ REM UserPrompt Sub
 		' Dependencies	objIntExplorer
 		' Usage:
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-	    'On Error Resume Next
+		'Need On Error Resume Next to allow script to continue if user closes IE
+		On Error Resume Next
 	    objIntExplorer.Document.WriteLn (strPrompt & "<br />")
 	End Sub
 	''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
