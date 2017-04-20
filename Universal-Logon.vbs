@@ -1,6 +1,6 @@
 REM Version Info
-	'  Universal Logon Script 1.9.5.1
-	'  Updated 20170419
+	'  Universal Logon Script 1.9.5.2
+	'  Updated 20170420
 	'
 	'
 REM Source Info
@@ -1307,11 +1307,9 @@ REM Add Printer Sub
 				
 				'Map Printers
 				If binPrinterExists Then
-					'objWshNetwork.AddWindowsPrinterConnection strPrtPath
+					objWshNetwork.AddWindowsPrinterConnection strPrtPath
 					'Check error condition and output appropriate user message
 					If Err.Number <> 0 Then
-					   
-						Err.clear
 						Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\CIMV2")
 						'Verify that printer is mapped			
 						Set colItems = objWMIService.ExecQuery("SELECT * FROM Win32_Printer")
@@ -1570,7 +1568,7 @@ REM MapDrive Sub
 				If objFileSys.DriveExists(strDrive & "\") Then
 					Call UserPrompt ("Successfully re-mapped drive connection to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
 					set objDrive = objShell.NameSpace(strDrive & "\")
-					If (Not objDrive.Self.Name = strDriveName) and (Not strDriveName = "") Then
+					If (Not Left(objDrive.Self.Name,len(objDrive.Self.Name) - 5) = strDriveName) and (Not strDriveName = "") Then
 						objDrive.Self.Name = strDriveName
 					End If
 				Else
@@ -1594,9 +1592,9 @@ REM MapDrive Sub
 			Else
 				'Call UserPrompt ("<font color=" & chr(34) & "gray" & chr(34) & ">Drive already connected to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) </font>" )
 				set objDrive = objShell.NameSpace(strDrive & "\")
-				If (Not objDrive.Self.Name = strDriveName) and (Not strDriveName = "") Then
+				If (Not Left(objDrive.Self.Name,len(objDrive.Self.Name) - 5) = strDriveName) and (Not strDriveName = "") Then
+					Call UserPrompt ("Updated drive name from " & Left(objDrive.Self.Name,len(objDrive.Self.Name) - 5) & " to " & strDriveName & " on drive " & strDrive)
 					objDrive.Self.Name = strDriveName
-					Call UserPrompt ("Updated drive name " & strDriveName & " on drive " & strDrive)
 				End If
 			End If 
 		Else
