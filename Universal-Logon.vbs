@@ -1631,7 +1631,7 @@ REM MapDrive Sub
 					If objFileSys.DriveExists(strDrive) Then
 						Call UserPrompt ("Successfully mapped drive connection to " & strPath & " ( " & strDrive  & " "& strDriveName & " ) " )
 						DicMappedDrives.Add  strServer, strPath
-						If (Not objShell.NameSpace(strDrive).Self.Name = strDriveName) and (Not strDriveName = "") Then
+						If (Not Left(objDrive.Self.Name,len(objDrive.Self.Name) - 5) = strDriveName) and (Not strDriveName = "") Then
 							objShell.NameSpace(strDrive).Self.Name = strDriveName
 						End If
 					Else
